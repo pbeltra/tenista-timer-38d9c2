@@ -36,7 +36,7 @@
   .barlbl{display:flex;justify-content:space-between;font-size:15px;color:var(--grey);font-weight:700;margin:2px 2px 4px}
   #next{background:var(--green2);border-radius:14px;padding:8px 12px;font-size:17px;font-weight:700;color:var(--green)}
   .btns{display:grid;grid-template-columns:1fr 1fr 74px;gap:8px;margin-top:auto}
-  button.b{font:inherit;font-size:21px;font-weight:800;border:none;border-radius:18px;padding:12px 8px;min-height:66px;color:#fff;background:var(--green)}
+  button.b,a.b{font:inherit;font-size:21px;font-weight:800;border:none;border-radius:18px;padding:12px 8px;min-height:66px;color:#fff;background:var(--green)}
   button.b:active{transform:scale(.98)}
   button.b:disabled{opacity:.35}
   #startBtn{grid-column:1/3;background:var(--orange);font-size:26px}
@@ -52,6 +52,10 @@
   #done .big{font-size:22px;font-weight:700}
   #doneText{font-size:28px;font-weight:900;background:#fff;border:3px dashed var(--green);border-radius:16px;padding:14px 22px;user-select:all;-webkit-user-select:all}
   #copyMsg{min-height:22px;color:var(--green);font-weight:800}
+  a.b{display:block;text-decoration:none;text-align:center;color:#fff}
+  #sendBtn{background:var(--green);width:100%;max-width:340px;font-size:26px;padding:20px 10px;line-height:1.4}
+  .hint{font-size:14px;color:var(--grey);margin-top:-8px}
+  #done{gap:12px}
   .note{font-size:12px;color:var(--grey);text-align:center}
 </style>
 </head>
@@ -89,11 +93,13 @@
 <section id="done">
   <h2>¡HECHO!</h2>
   <div class="big">Tiempo total real (con pausas):<br><span id="realTime" style="font-size:40px;font-weight:900;color:var(--green)">0:00</span></div>
-  <div class="big">Copia esto y envíaselo a Tenista:</div>
+  <a class="b" id="sendBtn" href="#" target="_blank" rel="noopener">✅ Enviar HECHO</a>
+  <div class="hint">Se abre GitHub: toca "Create" / "Crear" y listo</div>
+  <div class="big" style="font-size:17px;margin-top:6px">o copia esto y envíaselo a Tenista:</div>
   <div id="doneText">HECHO 29 min</div>
   <button class="b" id="copyBtn" style="background:var(--orange);width:100%;max-width:340px">📋 Copiar</button>
   <div id="copyMsg"></div>
-  <button class="b" id="againBtn" style="width:100%;max-width:340px">↺ Volver a empezar</button>
+  <button class="b" id="againBtn" style="width:100%;max-width:340px;background:#7A8A82">↺ Volver a empezar</button>
 </section>
 
 <script>
@@ -115,7 +121,7 @@ const $ = id => document.getElementById(id);
 const fmt = s => { s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
 
 let idx=0, running=false, paused=false, blockEndAt=0, remainingMs=BLOCKS[0].sec*1000;
-let realStart=0, tick=null, lastBeep=null, voiceOn=false, audioCtx=null, wakeLock=null;
+let realStart=0, startDate=null, status=[], tick=null, lastBeep=null, voiceOn=false, audioCtx=null, wakeLock=null;
 
 /* ---------- audio ---------- */
 function initAudio(){
@@ -191,7 +197,7 @@ function loop(){
   remainingMs = blockEndAt - Date.now();
   const s=Math.ceil(remainingMs/1000);
   if(s<=3 && s>=1 && lastBeep!==s){ lastBeep=s; beep(880,0.15); }
-  if(remainingMs<=0){ beep(1320,0.5); nextBlock(); return; }
+  if(remainingMs<=0){ beep(1320,0.5); status[idx]="ok"; nextBlock(); return; }
   render();
 }
 function startBlock(i){
@@ -205,7 +211,7 @@ function nextBlock(){
 function start(){
   initAudio(); requestWake();
   if("speechSynthesis" in window && voiceOn){ try{ speechSynthesis.cancel(); }catch(e){} }
-  running=true; paused=false; realStart=Date.now(); document.body.classList.add("running");
+  running=true; paused=false; realStart=Date.now(); startDate=new Date(); status=[]; document.body.classList.add("running");
   document.body.classList.remove("is-paused","finished");
   $("startBtn").style.display="none"; $("pauseBtn").disabled=false; $("skipBtn").disabled=false;
   $("pauseBtn").textContent="⏸ Pausa"; $("pauseBtn").classList.remove("paused");
@@ -228,7 +234,7 @@ function togglePause(){
 }
 function skip(){
   if(!running) return;
-  initAudio(); beep(660,0.12);
+  initAudio(); beep(660,0.12); status[idx]="skip";
   if(idx>=BLOCKS.length-1){ finish(); return; }
   startBlock(idx+1);
   if(paused){ remainingMs=BLOCKS[idx].sec*1000; render(); }
@@ -246,9 +252,31 @@ function finish(){
   clearInterval(tick); running=false; paused=false; releaseWake(); document.body.classList.remove("running");
   const real=(Date.now()-realStart)/1000;
   $("realTime").textContent=fmt(real);
+  $("sendBtn").href=buildIssueUrl(startDate||new Date(realStart), new Date(), real);
   $("copyMsg").textContent="";
   document.body.classList.remove("is-paused"); document.body.classList.add("finished");
   if(voiceOn) say("¡Hecho! Gran trabajo, Pablo.");
+}
+const REPO_ISSUE_URL="https://github.com/pbeltra/tenista-timer-38d9c2/issues/new";
+const p2=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate());
+const hm=d=>p2(d.getHours())+":"+p2(d.getMinutes());
+function buildIssueUrl(start,end,realSec){
+  const mins=Math.max(1,Math.round(realSec/60));
+  const title="HECHO "+ymd(start)+" · "+mins+" min";
+  const done=BLOCKS.filter((b,i)=>status[i]==="ok"), skipped=BLOCKS.filter((b,i)=>status[i]!=="ok");
+  const lines=[
+    "Rutina: Tenis · escalera + balón",
+    "Fecha: "+ymd(start),
+    "Inicio: "+hm(start),
+    "Fin: "+hm(end),
+    "Tiempo total: "+mins+" min ("+fmt(realSec)+", con pausas)",
+    "Bloques completados: "+done.length+"/"+BLOCKS.length,
+    "Bloques saltados: "+skipped.length+(skipped.length?" ("+skipped.map(b=>b.name).join("; ")+")":""),
+    "",
+    "Detalle:"
+  ].concat(BLOCKS.map((b,i)=>"- "+(status[i]==="ok"?"✅ ":"⏭ ")+b.name));
+  return REPO_ISSUE_URL+"?title="+encodeURIComponent(title)+"&body="+encodeURIComponent(lines.join("\n"))+"&labels=hecho";
 }
 async function copyDone(){
   const t=$("doneText").textContent;
