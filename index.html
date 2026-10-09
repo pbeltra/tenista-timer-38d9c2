@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1B5E3B">
+<title>Tenista · Temporizador</title>
+<style>
+  :root{--green:#1B5E3B;--green2:#E7F2EA;--orange:#F07D16;--dark:#1F2A24;--grey:#5A6560;--bg:#F4F7F2;--yellow:#FFF6D6;--lad:#E8C21A;--red:#C0392B}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--dark);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif}
+  body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  header{background:var(--green);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  header h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.2px}
+  .toggle{display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px;user-select:none}
+  .switch{position:relative;width:52px;height:30px;background:#7FA08C;border-radius:30px;transition:.2s;border:none;padding:0}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s}
+  .switch.on{background:var(--orange)} .switch.on::after{left:25px}
+  main{flex:1;display:flex;flex-direction:column;padding:10px 14px 10px;gap:9px}
+  .meta{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--grey);font-size:16px}
+  .tag{display:inline-block;padding:5px 12px;border-radius:20px;color:#fff;font-size:15px;font-weight:800;letter-spacing:.5px}
+  .card{background:#fff;border:2px solid #D3DDD6;border-radius:20px;padding:12px 14px;text-align:center}
+  #name{font-size:28px;font-weight:900;line-height:1.12;margin:2px 0 8px}
+  #phrase{background:var(--yellow);border:3px solid var(--lad);border-radius:14px;padding:8px 10px;font-size:22px;font-weight:800;line-height:1.25}
+  #phrase small{display:block;font-size:12px;color:#8A6D00;letter-spacing:1px;margin-bottom:4px;font-weight:800}
+  #reps{margin-top:8px;font-size:17px;font-weight:700;color:var(--green)}
+  #count{font-size:84px;font-weight:900;text-align:center;font-variant-numeric:tabular-nums;line-height:1;margin:6px 0 0;color:var(--dark)}
+  #count.warn{color:var(--orange)}
+  .bar{height:16px;background:#DCE5DF;border-radius:10px;overflow:hidden}
+  .bar>div{height:100%;width:0;background:var(--orange);border-radius:10px;transition:width .3s linear}
+  .bar.total>div{background:var(--green)}
+  .barlbl{display:flex;justify-content:space-between;font-size:15px;color:var(--grey);font-weight:700;margin:2px 2px 4px}
+  #next{background:var(--green2);border-radius:14px;padding:8px 12px;font-size:17px;font-weight:700;color:var(--green)}
+  .btns{display:grid;grid-template-columns:1fr 1fr 74px;gap:8px;margin-top:auto}
+  button.b{font:inherit;font-size:21px;font-weight:800;border:none;border-radius:18px;padding:12px 8px;min-height:66px;color:#fff;background:var(--green)}
+  button.b:active{transform:scale(.98)}
+  button.b:disabled{opacity:.35}
+  #startBtn{grid-column:1/3;background:var(--orange);font-size:26px}
+  body:not(.running) #pauseBtn, body:not(.running) #skipBtn{display:none}
+  #resetBtn{font-size:28px}
+  #pauseBtn{background:var(--orange)} #skipBtn{background:#5B8FD6} #resetBtn{background:#7A8A82}
+  #pauseBtn.paused{background:var(--green)}
+  .paused-banner{display:none;text-align:center;font-weight:900;color:var(--red);font-size:20px}
+  body.is-paused .paused-banner{display:block}
+  #done{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center}
+  body.finished main{display:none} body.finished #done{display:flex}
+  #done h2{font-size:64px;margin:0;color:var(--orange);font-weight:900}
+  #done .big{font-size:22px;font-weight:700}
+  #doneText{font-size:28px;font-weight:900;background:#fff;border:3px dashed var(--green);border-radius:16px;padding:14px 22px;user-select:all;-webkit-user-select:all}
+  #copyMsg{min-height:22px;color:var(--green);font-weight:800}
+  .note{font-size:12px;color:var(--grey);text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎾 Tenista · 29 min</h1>
+  <div class="toggle">Voz <button id="voiceBtn" class="switch" role="switch" aria-checked="false" aria-label="Voz"></button></div>
+</header>
+
+<main>
+  <div class="meta"><span id="tag" class="tag">CALENTAMIENTO</span><span id="step">Bloque 1 de 10</span></div>
+  <div class="card">
+    <div id="name">Calentamiento</div>
+    <div id="phrase"><small>DILO EN VOZ ALTA</small><span id="phraseText"></span></div>
+    <div id="reps"></div>
+  </div>
+  <div id="count">3:00</div>
+  <div class="paused-banner">⏸ EN PAUSA</div>
+  <div>
+    <div class="barlbl"><span>Bloque</span><span id="blockPct">0%</span></div>
+    <div class="bar"><div id="blockBar"></div></div>
+    <div class="barlbl" style="margin-top:8px"><span>Total transcurrido <b id="totalEl">0:00</b> / 29:00</span><span id="totalPct">0%</span></div>
+    <div class="bar total"><div id="totalBar"></div></div>
+  </div>
+  <div id="next">Siguiente: …</div>
+  <div class="btns">
+    <button class="b" id="startBtn">▶ Empezar</button>
+    <button class="b" id="pauseBtn" disabled>⏸ Pausa</button>
+    <button class="b" id="skipBtn" disabled>⏭ Saltar</button>
+    <button class="b" id="resetBtn" aria-label="Reiniciar" title="Reiniciar">↺</button>
+  </div>
+  <div class="note">Piso seco · descansos de 20–30 s entre series dentro de cada bloque</div>
+</main>
+
+<section id="done">
+  <h2>¡HECHO!</h2>
+  <div class="big">Tiempo total real (con pausas):<br><span id="realTime" style="font-size:40px;font-weight:900;color:var(--green)">0:00</span></div>
+  <div class="big">Copia esto y envíaselo a Tenista:</div>
+  <div id="doneText">HECHO 29 min</div>
+  <button class="b" id="copyBtn" style="background:var(--orange);width:100%;max-width:340px">📋 Copiar</button>
+  <div id="copyMsg"></div>
+  <button class="b" id="againBtn" style="width:100%;max-width:340px">↺ Volver a empezar</button>
+</section>
+
+<script>
+"use strict";
+const BLOCKS = [
+  {tag:"CALENTAMIENTO", color:"#7A8A82", name:"Calentamiento", phrase:"Suave, suave… ¡listo!", reps:"Trote suave en el sitio · círculos de brazos y cadera · 10 sentadillas suaves", sec:180},
+  {tag:"ESCALERA", color:"#C9A200", name:"Escalera 1 · Un pie por cuadro", phrase:"Pa-pa-pa-pa", reps:"3 idas y vueltas · descanso 20–30 s", sec:180},
+  {tag:"ESCALERA", color:"#C9A200", name:"Escalera 2 · Trotecito en puntas I-D", phrase:"Iz-der, iz-der… ta-ta, ta-ta", reps:"Ni saltas ni caminas · 3 idas y vueltas", sec:180},
+  {tag:"ESCALERA", color:"#C9A200", name:"Escalera 3 · Lateral dentro-fuera", phrase:"Den-tro, den-tro, fue-ra, fue-ra", reps:"De frente a la escalera · 2 veces por lado", sec:180},
+  {tag:"ESCALERA", color:"#C9A200", name:"Escalera 4 · Split step + swing", phrase:"Pa-pa-pa-pa… ¡SALTO!… ¡golpe!", reps:"6 repeticiones alternando derecha / revés", sec:180},
+  {tag:"TRANSICIÓN", color:"#5B8FD6", name:"Transición · Agua y balón", phrase:"Bebo… respiro… ¡balón!", reps:"Toma agua y coloca el balón junto al muro", sec:60},
+  {tag:"BALÓN MEDICINAL", color:"#3FA34D", name:"Balón · Rotación de derecha", phrase:"Car-go… gi-ro… ¡suel-to!", reps:"3 series de 8 · descanso 20–30 s", sec:180},
+  {tag:"BALÓN MEDICINAL", color:"#3FA34D", name:"Balón · Rotación de revés", phrase:"Car-go… gi-ro… ¡suel-to!", reps:"3 series de 8 · descanso 20–30 s", sec:180},
+  {tag:"BALÓN MEDICINAL", color:"#3FA34D", name:"Balón · Lanzamiento tipo saque", phrase:"Car-go… em-pu-jo… ¡lan-zo!", reps:"3 series de 6 · abdomen firme", sec:240},
+  {tag:"CIERRE", color:"#8E6FC1", name:"Cierre · Sombras y respiración", phrase:"Len-to… fre-no… res-pi-ro", reps:"Derechas y reveses lentos, frenando al final · 5 respiraciones", sec:180}
+];
+const TOTAL = BLOCKS.reduce((a,b)=>a+b.sec,0);
+const $ = id => document.getElementById(id);
+const fmt = s => { s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
+
+let idx=0, running=false, paused=false, blockEndAt=0, remainingMs=BLOCKS[0].sec*1000;
+let realStart=0, tick=null, lastBeep=null, voiceOn=false, audioCtx=null, wakeLock=null;
+
+/* ---------- audio ---------- */
+function initAudio(){
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    if(!audioCtx) audioCtx = new AC();
+    if(audioCtx.state==="suspended") audioCtx.resume();
+    // silent blip to unlock iOS
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain(); g.gain.value=0.0001;
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.02);
+  }catch(e){}
+}
+function beep(freq, dur){
+  if(!audioCtx) return;
+  try{
+    const t=audioCtx.currentTime, o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type="sine"; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.6,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t+dur+0.05);
+  }catch(e){}
+}
+/* ---------- voz ---------- */
+let esVoice=null;
+function pickVoice(){
+  if(!("speechSynthesis" in window)) return;
+  const v=speechSynthesis.getVoices();
+  esVoice = v.find(x=>/^es[-_](EC|US|MX|419)/i.test(x.lang)) || v.find(x=>/^es/i.test(x.lang)) || null;
+}
+if("speechSynthesis" in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
+function say(text){
+  if(!voiceOn || !("speechSynthesis" in window)) return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang = esVoice ? esVoice.lang : "es-ES"; if(esVoice) u.voice=esVoice; u.rate=1;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function announce(i){
+  const b=BLOCKS[i];
+  say(b.name.replace("·",",")+". "+b.phrase.replace(/-/g,"")+".");
+}
+/* ---------- wake lock ---------- */
+async function requestWake(){
+  try{ if("wakeLock" in navigator && !wakeLock){ wakeLock=await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release",()=>{wakeLock=null;}); } }catch(e){ wakeLock=null; }
+}
+function releaseWake(){ try{ if(wakeLock){ wakeLock.release(); wakeLock=null; } }catch(e){} }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && running && !paused) requestWake(); });
+
+/* ---------- render ---------- */
+function elapsedBefore(i){ let s=0; for(let k=0;k<i;k++) s+=BLOCKS[k].sec; return s; }
+function render(){
+  const b=BLOCKS[idx];
+  $("tag").textContent=b.tag; $("tag").style.background=b.color;
+  $("step").textContent="Bloque "+(idx+1)+" de "+BLOCKS.length;
+  $("name").textContent=b.name;
+  $("phraseText").textContent="“"+b.phrase+"”";
+  $("reps").textContent=b.reps;
+  $("next").textContent = idx<BLOCKS.length-1 ? "Siguiente: "+BLOCKS[idx+1].name+" ("+fmt(BLOCKS[idx+1].sec)+")" : "Siguiente: ¡FIN! Escríbele HECHO a Tenista";
+  const rem=remainingMs/1000, done=b.sec-rem;
+  $("count").textContent=fmt(rem);
+  $("count").classList.toggle("warn", running && rem<=3.05);
+  const bp=Math.min(100,Math.max(0,done/b.sec*100));
+  $("blockBar").style.width=bp+"%"; $("blockPct").textContent=Math.floor(bp)+"%";
+  const tot=elapsedBefore(idx)+done, tp=Math.min(100,tot/TOTAL*100);
+  $("totalEl").textContent=fmt(tot); $("totalBar").style.width=tp+"%"; $("totalPct").textContent=Math.floor(tp)+"%";
+}
+/* ---------- control ---------- */
+function loop(){
+  if(!running || paused) return;
+  remainingMs = blockEndAt - Date.now();
+  const s=Math.ceil(remainingMs/1000);
+  if(s<=3 && s>=1 && lastBeep!==s){ lastBeep=s; beep(880,0.15); }
+  if(remainingMs<=0){ beep(1320,0.5); nextBlock(); return; }
+  render();
+}
+function startBlock(i){
+  idx=i; remainingMs=BLOCKS[i].sec*1000; blockEndAt=Date.now()+remainingMs; lastBeep=null;
+  announce(i); render();
+}
+function nextBlock(){
+  if(idx>=BLOCKS.length-1){ finish(); return; }
+  startBlock(idx+1);
+}
+function start(){
+  initAudio(); requestWake();
+  if("speechSynthesis" in window && voiceOn){ try{ speechSynthesis.cancel(); }catch(e){} }
+  running=true; paused=false; realStart=Date.now(); document.body.classList.add("running");
+  document.body.classList.remove("is-paused","finished");
+  $("startBtn").style.display="none"; $("pauseBtn").disabled=false; $("skipBtn").disabled=false;
+  $("pauseBtn").textContent="⏸ Pausa"; $("pauseBtn").classList.remove("paused");
+  startBlock(0);
+  clearInterval(tick); tick=setInterval(loop,200);
+}
+function togglePause(){
+  if(!running) return;
+  if(!paused){
+    paused=true; remainingMs=Math.max(0,blockEndAt-Date.now());
+    $("pauseBtn").textContent="▶ Seguir"; $("pauseBtn").classList.add("paused");
+    document.body.classList.add("is-paused"); releaseWake();
+    if("speechSynthesis" in window) try{ speechSynthesis.cancel(); }catch(e){}
+  }else{
+    initAudio(); paused=false; blockEndAt=Date.now()+remainingMs;
+    $("pauseBtn").textContent="⏸ Pausa"; $("pauseBtn").classList.remove("paused");
+    document.body.classList.remove("is-paused"); requestWake();
+  }
+  render();
+}
+function skip(){
+  if(!running) return;
+  initAudio(); beep(660,0.12);
+  if(idx>=BLOCKS.length-1){ finish(); return; }
+  startBlock(idx+1);
+  if(paused){ remainingMs=BLOCKS[idx].sec*1000; render(); }
+}
+function reset(){
+  if(running && !document.body.classList.contains("finished") && !confirm("¿Reiniciar la sesión desde el principio?")) return;
+  clearInterval(tick); running=false; paused=false; idx=0; document.body.classList.remove("running"); remainingMs=BLOCKS[0].sec*1000; lastBeep=null;
+  releaseWake(); if("speechSynthesis" in window) try{ speechSynthesis.cancel(); }catch(e){}
+  document.body.classList.remove("is-paused","finished");
+  $("startBtn").style.display=""; $("pauseBtn").disabled=true; $("skipBtn").disabled=true;
+  $("pauseBtn").textContent="⏸ Pausa"; $("pauseBtn").classList.remove("paused");
+  render();
+}
+function finish(){
+  clearInterval(tick); running=false; paused=false; releaseWake(); document.body.classList.remove("running");
+  const real=(Date.now()-realStart)/1000;
+  $("realTime").textContent=fmt(real);
+  $("copyMsg").textContent="";
+  document.body.classList.remove("is-paused"); document.body.classList.add("finished");
+  if(voiceOn) say("¡Hecho! Gran trabajo, Pablo.");
+}
+async function copyDone(){
+  const t=$("doneText").textContent;
+  let ok=false;
+  try{ if(navigator.clipboard && window.isSecureContext){ ok = await Promise.race([navigator.clipboard.writeText(t).then(()=>true), new Promise(r=>setTimeout(()=>r(false),1500))]); } }catch(e){ ok=false; }
+  if(!ok){
+    try{
+      const ta=document.createElement("textarea"); ta.value=t; ta.setAttribute("readonly","");
+      ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta);
+      ta.select(); ta.setSelectionRange(0,t.length); ok=document.execCommand("copy"); document.body.removeChild(ta);
+    }catch(e){}
+  }
+  $("copyMsg").textContent = ok ? "✓ Copiado. Pégalo en el chat de Tenista." : "Mantén presionado el texto para copiarlo.";
+}
+$("startBtn").addEventListener("click",start);
+$("pauseBtn").addEventListener("click",togglePause);
+$("skipBtn").addEventListener("click",skip);
+$("resetBtn").addEventListener("click",reset);
+$("copyBtn").addEventListener("click",copyDone);
+$("againBtn").addEventListener("click",reset);
+$("voiceBtn").addEventListener("click",()=>{
+  voiceOn=!voiceOn; $("voiceBtn").classList.toggle("on",voiceOn); $("voiceBtn").setAttribute("aria-checked",String(voiceOn));
+  if(voiceOn){ initAudio(); say(running ? "Voz activada" : "Voz activada. Toca Empezar."); }
+  else if("speechSynthesis" in window){ try{ speechSynthesis.cancel(); }catch(e){} }
+});
+render();
+</script>
+</body>
+</html>
